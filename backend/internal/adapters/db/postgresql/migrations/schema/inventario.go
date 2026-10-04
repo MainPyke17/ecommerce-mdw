@@ -5,18 +5,27 @@ import (
 	"gorm.io/gorm"
 )
 
-// MigracionesInventario returns the inventory module's single migration.
-// It runs third, after identidad and catalogo: lote references variante
-// (catálogo) and movimiento_stock references usuario (identidad), both of
-// which must already exist. pedido_id columns carry no foreign key because
-// the pedidos module migrates last; that integrity is enforced by the
-// inventory service, not by the schema.
+// MigracionesInventario returns the inventory and payments module's
+// migrations. It runs third, after identidad and catalogo: lote references
+// variante (catálogo) and movimiento_stock references usuario (identidad),
+// both of which must already exist. pedido_id columns carry no foreign key
+// because the pedidos module migrates last; that integrity is enforced by
+// the inventory service, not by the schema.
+//
+// 20261004_03_inventario ya está mergeada y no se edita: un cambio de
+// esquema se agrega acá como una migración nueva, nunca modificando una
+// existente.
 func MigracionesInventario() []*gormigrate.Migration {
 	return []*gormigrate.Migration{
 		{
 			ID:       "20261004_03_inventario",
 			Migrate:  migrarInventario,
 			Rollback: revertirInventario,
+		},
+		{
+			ID:       "20261004_03b_pagos",
+			Migrate:  migrarPagos,
+			Rollback: revertirPagos,
 		},
 	}
 }
@@ -86,4 +95,35 @@ func migrarInventario(tx *gorm.DB) error {
 
 func revertirInventario(tx *gorm.DB) error {
 	return tx.Exec(`DROP TABLE IF EXISTS reserva_stock, movimiento_stock, lote, proveedor CASCADE`).Error
+}
+
+// migrarPagos crea intento_pago. El índice único en (proveedor,
+// referencia_externa) es lo que hace imposible procesar dos veces la misma
+// notificación de Mercado Pago. pedido_id no lleva FK por el mismo motivo
+// que reserva_stock.pedido_id: pedido migra después.
+func migrarPagos(tx *gorm.DB) error {
+	sentencias := []string{
+		`CREATE TABLE intento_pago (
+			id uuid PRIMARY KEY,
+			pedido_id uuid NOT NULL,
+			proveedor varchar(20) NOT NULL CHECK (proveedor IN ('MERCADO_PAGO', 'EFECTIVO')),
+			referencia_externa varchar(255) NOT NULL,
+			estado varchar(20) NOT NULL CHECK (estado IN ('PENDIENTE', 'APROBADO', 'RECHAZADO')),
+			monto_centavos bigint NOT NULL CHECK (monto_centavos >= 0),
+			creado_en timestamptz NOT NULL DEFAULT now(),
+			actualizado_en timestamptz NOT NULL DEFAULT now()
+		)`,
+		`CREATE UNIQUE INDEX idx_intento_pago_proveedor_referencia ON intento_pago (proveedor, referencia_externa)`,
+		`CREATE INDEX idx_intento_pago_pedido_id ON intento_pago (pedido_id)`,
+	}
+	for _, sentencia := range sentencias {
+		if err := tx.Exec(sentencia).Error; err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func revertirPagos(tx *gorm.DB) error {
+	return tx.Exec(`DROP TABLE IF EXISTS intento_pago CASCADE`).Error
 }
