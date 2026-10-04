@@ -1,4 +1,5 @@
 # Secretos y entornos locales — nunca se commitean.
+/.env
 backend/.env
 docs/.env
 
