@@ -27,6 +27,17 @@ func (r *RepositorioLotes) PorID(ctx context.Context, id uuid.UUID) (domain.Lote
 	return lote, err
 }
 
+// PorIDBloqueando lee un lote con SELECT ... FOR UPDATE, para usar dentro de
+// la transacción de un ajuste de stock.
+func (r *RepositorioLotes) PorIDBloqueando(ctx context.Context, id uuid.UUID) (domain.Lote, error) {
+	var lote domain.Lote
+	err := r.db.WithContext(ctx).
+		Clauses(clause.Locking{Strength: "UPDATE"}).
+		Where("id = ?", id).
+		First(&lote).Error
+	return lote, err
+}
+
 // PorVariante devuelve los lotes de una variante ordenados por fecha_ingreso:
 // ascendente para FIFO, descendente para LIFO.
 func (r *RepositorioLotes) PorVariante(ctx context.Context, varianteID uuid.UUID, metodologia string) ([]domain.Lote, error) {
