@@ -518,6 +518,26 @@ Referencias técnicas de mapas consultadas para distinguir servicios: [API de No
 
 ## 9. Fuera de alcance
 
+### Fuera de alcance de esta entrega (Parcial I — 06/10/2026)
+
+El núcleo obligatorio del Parcial I es: identidad con RBAC (SPEC-H01, H02, H03), catálogo con CRUD completo (SPEC-H04, H05, H08), carrito y checkout (SPEC-H07, H13), pedido con copia histórica y reserva de stock por lotes (SPEC-H09, H13), Mercado Pago en sandbox (SPEC-H14), retiro en efectivo (SPEC-H15), consulta de pedido (SPEC-H16) y transiciones de despacho/entrega/cancelación (SPEC-H17, H18), desplegado en producción.
+
+Lo siguiente está descripto en sus historias correspondientes (son parte de la visión completa del producto) pero **no se implementa para esta entrega**; vuelve para el Parcial II (17/11/2026):
+
+- Promociones (SPEC-H11) y cupones (SPEC-H12).
+- Facturación con el sistema fiscal / ARCA (SPEC-H19).
+- Estadísticas online (SPEC-H20).
+- Favoritos y avisos de reposición por correo (SPEC-H06).
+- Registro de ventas externas (SPEC-H10).
+- Auditoría de pedidos (parte de SPEC-H21; la configuración de tienda sí entra).
+- Integración con WhatsApp (OpenWA) y con el proveedor de correo (sección 8).
+- Geocodificación real con API de mapas: la distancia de envío llega como parámetro del checkout, sin resolver el domicilio contra un proveedor externo (sección 6, "Entrega").
+- Frontend: el Parcial I se defiende con el backend corriendo en producción y probado con `docs/api/*.http`; las pantallas son el alcance de la clase 9 en adelante (ver `docs/plan-de-trabajo.md`).
+
+Lo que no está recortado por escrito en esta sección, en la defensa cuenta como funcionalidad prometida y no entregada.
+
+### Fuera de alcance del producto completo
+
 - Reseñas de productos.
 - Compra por encargo o venta de unidades sin stock disponible.
 - Múltiples negocios, sucursales o depósitos con stock separado.
