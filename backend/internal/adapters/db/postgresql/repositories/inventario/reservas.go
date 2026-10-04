@@ -35,6 +35,34 @@ func (r *RepositorioReservas) ActivasPorLote(ctx context.Context, loteID uuid.UU
 	return reservas, err
 }
 
+// ActivasPorLotes suma, por lote, las unidades de sus reservas ACTIVA. Es lo
+// que Reservar necesita para saber cuánto de cada lote ya está comprometido
+// antes de asignar unidades nuevas.
+func (r *RepositorioReservas) ActivasPorLotes(ctx context.Context, loteIDs []uuid.UUID) (map[uuid.UUID]int, error) {
+	activas := make(map[uuid.UUID]int, len(loteIDs))
+	if len(loteIDs) == 0 {
+		return activas, nil
+	}
+
+	var filas []struct {
+		LoteID uuid.UUID
+		Total  int
+	}
+	err := r.db.WithContext(ctx).
+		Model(&domain.ReservaStock{}).
+		Select("lote_id, SUM(unidades) AS total").
+		Where("lote_id IN ? AND estado = ?", loteIDs, domain.ReservaActiva).
+		Group("lote_id").
+		Find(&filas).Error
+	if err != nil {
+		return nil, err
+	}
+	for _, fila := range filas {
+		activas[fila.LoteID] = fila.Total
+	}
+	return activas, nil
+}
+
 func (r *RepositorioReservas) CambiarEstado(ctx context.Context, id uuid.UUID, nuevo domain.EstadoReserva) error {
 	return r.db.WithContext(ctx).
 		Model(&domain.ReservaStock{}).
