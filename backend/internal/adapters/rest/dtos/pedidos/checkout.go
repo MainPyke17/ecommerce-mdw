@@ -138,12 +138,20 @@ func (r CrearPedidoRequest) AEntrada() (uc.DatosPedido, error) {
 	}, nil
 }
 
-// PedidoResponse es el pedido recién creado, tal como lo ve quien lo compró.
-// TokenAcceso es el secreto del enlace privado: se entrega una sola vez, acá.
+// PedidoResponse es el pedido recién creado, tal como lo ve quien lo compró:
+// el detalle de siempre más TokenAcceso, el secreto del enlace privado, que se
+// entrega una sola vez, acá. (Al consultar después, el token no vuelve a salir.)
 type PedidoResponse struct {
+	PedidoDetalleResponse
+	TokenAcceso string `json:"tokenAcceso"`
+}
+
+// PedidoDetalleResponse es el pedido visto desde la cuenta de quien lo compró
+// (o desde el checkout, que le suma el token). Es la vista "propia": más
+// completa que la pública, y por eso nunca se usa en el enlace del invitado.
+type PedidoDetalleResponse struct {
 	ID               uuid.UUID         `json:"id"`
 	Numero           int64             `json:"numero"`
-	TokenAcceso      string            `json:"tokenAcceso"`
 	ModoEntrega      string            `json:"modoEntrega"`
 	Domicilio        *string           `json:"domicilio,omitempty"`
 	DistanciaMetros  *int              `json:"distanciaMetros,omitempty"`
@@ -167,8 +175,14 @@ type DetalleResponse struct {
 	SubtotalCentavos       int64     `json:"subtotalCentavos"`
 }
 
-// APedidoResponse convierte el pedido del dominio en su respuesta JSON.
+// APedidoResponse convierte el pedido recién creado en su respuesta JSON,
+// con el token del enlace privado.
 func APedidoResponse(p domain.Pedido) PedidoResponse {
+	return PedidoResponse{PedidoDetalleResponse: APedidoDetalle(p), TokenAcceso: p.TokenAcceso}
+}
+
+// APedidoDetalle convierte el pedido del dominio en la vista propia (sin token).
+func APedidoDetalle(p domain.Pedido) PedidoDetalleResponse {
 	detalles := make([]DetalleResponse, len(p.Detalles))
 	for i, d := range p.Detalles {
 		detalles[i] = DetalleResponse{
@@ -176,8 +190,8 @@ func APedidoResponse(p domain.Pedido) PedidoResponse {
 			PrecioUnitarioCentavos: d.PrecioUnitarioCentavos, SubtotalCentavos: d.SubtotalCentavos,
 		}
 	}
-	return PedidoResponse{
-		ID: p.ID, Numero: p.Numero, TokenAcceso: p.TokenAcceso,
+	return PedidoDetalleResponse{
+		ID: p.ID, Numero: p.Numero,
 		ModoEntrega: string(p.ModoEntrega), Domicilio: p.Domicilio, DistanciaMetros: p.DistanciaMetros,
 		EnvioCentavos: p.EnvioCentavos, SubtotalCentavos: p.SubtotalCentavos, TotalCentavos: p.TotalCentavos,
 		EstadoPedido: string(p.EstadoPedido), EstadoPago: string(p.EstadoPago), MedioPago: string(p.MedioPago),

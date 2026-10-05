@@ -1,6 +1,7 @@
 package pedidos
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 
@@ -17,10 +18,15 @@ const maxBody = 1 << 20 // 1 MiB: un pedido razonable pesa unos pocos KB
 // decide reglas de negocio.
 type Handler struct {
 	checkout *uc.Checkout
+	consulta *uc.Consulta
+
+	// usuario lee la identidad del contexto de la sesión. Es un campo para que
+	// los tests puedan simular una sesión sin armar un JWT.
+	usuario func(ctx context.Context) (middleware.Usuario, bool)
 }
 
-func NuevoHandler(checkout *uc.Checkout) *Handler {
-	return &Handler{checkout: checkout}
+func NuevoHandler(checkout *uc.Checkout, consulta *uc.Consulta) *Handler {
+	return &Handler{checkout: checkout, consulta: consulta, usuario: middleware.UsuarioDeContexto}
 }
 
 // CrearPedido atiende POST /api/pedidos (SPEC-H13). La sesión es opcional: el
@@ -37,7 +43,7 @@ func (h *Handler) CrearPedido(w http.ResponseWriter, r *http.Request) {
 	const endpoint = "POST /api/pedidos"
 
 	// La identidad sale del contexto de la sesión, nunca del body.
-	usuario, hayUsuario := middleware.UsuarioDeContexto(r.Context())
+	usuario, hayUsuario := h.usuario(r.Context())
 
 	var req dto.CrearPedidoRequest
 	r.Body = http.MaxBytesReader(w, r.Body, maxBody)

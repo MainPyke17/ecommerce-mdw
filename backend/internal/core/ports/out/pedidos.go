@@ -40,3 +40,12 @@ type LectorConfiguracion interface {
 type Transaccionador interface {
 	EnTransaccion(ctx context.Context, fn func(tx *gorm.DB) error) error
 }
+
+// LectorPedidos son las consultas de lectura que el comprador puede hacer. Las
+// de datos propios llevan el id del comprador: no existe una forma de pedir "el
+// pedido X" sin decir de quién es.
+type LectorPedidos interface {
+	PorIDYUsuario(ctx context.Context, id, usuarioID uuid.UUID) (domain.Pedido, error)
+	PorToken(ctx context.Context, token string) (domain.PedidoPublico, error)
+	ListarDeUsuario(ctx context.Context, usuarioID uuid.UUID, limit, offset int) ([]domain.Pedido, int64, error)
+}
