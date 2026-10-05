@@ -27,4 +27,5 @@ var (
 	_ out.LectorConfiguracion = (*RepositorioConfiguracion)(nil)
 	_ out.LectorPedidos       = (*RepositorioPedidos)(nil)
 	_ out.GestorPedidos       = (*RepositorioPedidos)(nil)
+	_ out.RepositorioCarrito  = (*RepositorioCarritos)(nil)
 )

@@ -76,3 +76,22 @@ type GestorStock interface {
 	Confirmar(ctx context.Context, tx *gorm.DB, pedidoID uuid.UUID) error
 	Liberar(ctx context.Context, tx *gorm.DB, pedidoID uuid.UUID) error
 }
+
+// RepositorioCarrito guarda el carrito de los clientes registrados. Todas las
+// operaciones sobre una línea llevan el id del carrito: una línea de otro
+// carrito, para quien llama, no existe.
+type RepositorioCarrito interface {
+	PorUsuario(ctx context.Context, usuarioID uuid.UUID) (domain.Carrito, error)
+	CrearSiNoExiste(ctx context.Context, usuarioID uuid.UUID) (domain.Carrito, error)
+	AgregarItem(ctx context.Context, carritoID, varianteID uuid.UUID, unidades int) (domain.ItemCarrito, error)
+	CambiarUnidades(ctx context.Context, carritoID, itemID uuid.UUID, unidades int) error
+	QuitarItem(ctx context.Context, carritoID, itemID uuid.UUID) error
+	Vaciar(ctx context.Context, carritoID uuid.UUID) error
+}
+
+// ConsultaStock informa cuántas unidades vendibles tiene una variante
+// (existencias menos reservas). Lo implementa ServicioStock.Disponible
+// (Agustín), cuya firma coincide exactamente con esta.
+type ConsultaStock interface {
+	Disponible(ctx context.Context, varianteID uuid.UUID) (int, error)
+}

@@ -20,14 +20,15 @@ type Handler struct {
 	checkout *uc.Checkout
 	consulta *uc.Consulta
 	gestion  *uc.Gestion
+	carrito  *uc.GestionCarrito
 
 	// usuario lee la identidad del contexto de la sesión. Es un campo para que
 	// los tests puedan simular una sesión sin armar un JWT.
 	usuario func(ctx context.Context) (middleware.Usuario, bool)
 }
 
-func NuevoHandler(checkout *uc.Checkout, consulta *uc.Consulta, gestion *uc.Gestion) *Handler {
-	return &Handler{checkout: checkout, consulta: consulta, gestion: gestion, usuario: middleware.UsuarioDeContexto}
+func NuevoHandler(checkout *uc.Checkout, consulta *uc.Consulta, gestion *uc.Gestion, carrito *uc.GestionCarrito) *Handler {
+	return &Handler{checkout: checkout, consulta: consulta, gestion: gestion, carrito: carrito, usuario: middleware.UsuarioDeContexto}
 }
 
 // CrearPedido atiende POST /api/pedidos (SPEC-H13). La sesión es opcional: el
