@@ -26,4 +26,5 @@ var (
 	_ out.CreadorDePedidos    = (*RepositorioPedidos)(nil)
 	_ out.LectorConfiguracion = (*RepositorioConfiguracion)(nil)
 	_ out.LectorPedidos       = (*RepositorioPedidos)(nil)
+	_ out.GestorPedidos       = (*RepositorioPedidos)(nil)
 )

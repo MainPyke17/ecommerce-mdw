@@ -9,6 +9,7 @@ import (
 
 	apierr "github.com/Unknowns24/ecommerce-mdw/internal/adapters/rest/errors"
 	"github.com/Unknowns24/ecommerce-mdw/internal/core/domain"
+	"github.com/Unknowns24/ecommerce-mdw/internal/core/ports/out"
 )
 
 // RepositorioPedidos concentra todas las consultas de pedidos.
@@ -18,12 +19,9 @@ func NuevoRepositorioPedidos(db *gorm.DB) *RepositorioPedidos {
 	return &RepositorioPedidos{db: db}
 }
 
-// FiltrosAdmin son los filtros opcionales del listado administrativo.
-type FiltrosAdmin struct {
-	Estado *domain.EstadoPedido
-	Desde  *time.Time // incluido
-	Hasta  *time.Time // excluido
-}
+// FiltrosAdmin son los filtros opcionales del listado administrativo (los define
+// el puerto para que el caso de uso no dependa de este paquete).
+type FiltrosAdmin = out.FiltrosPedidos
 
 // Crear guarda el pedido y su detalle dentro de la transacción tx que abre el
 // checkout: si algo falla después (por ejemplo, el stock no alcanza), todo se

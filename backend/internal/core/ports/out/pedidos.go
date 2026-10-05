@@ -2,6 +2,7 @@ package out
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -48,4 +49,30 @@ type LectorPedidos interface {
 	PorIDYUsuario(ctx context.Context, id, usuarioID uuid.UUID) (domain.Pedido, error)
 	PorToken(ctx context.Context, token string) (domain.PedidoPublico, error)
 	ListarDeUsuario(ctx context.Context, usuarioID uuid.UUID, limit, offset int) ([]domain.Pedido, int64, error)
+}
+
+// FiltrosPedidos son los filtros opcionales del listado administrativo.
+type FiltrosPedidos struct {
+	Estado *domain.EstadoPedido
+	Desde  *time.Time // incluido
+	Hasta  *time.Time // excluido
+}
+
+// GestorPedidos son las operaciones de la administración sobre los pedidos.
+// Nada de esto filtra por comprador: solo se usa en rutas con el permiso
+// pedidos.gestionar.
+type GestorPedidos interface {
+	PorID(ctx context.Context, id uuid.UUID) (domain.Pedido, error)
+	ListarAdmin(ctx context.Context, f FiltrosPedidos, limit, offset int) ([]domain.Pedido, int64, error)
+	CambiarEstado(ctx context.Context, tx *gorm.DB, id uuid.UUID, desde, nuevo domain.EstadoPedido) error
+	MarcarPagoAprobado(ctx context.Context, tx *gorm.DB, id uuid.UUID) error
+	RegistrarCancelacion(ctx context.Context, tx *gorm.DB, id, responsableID uuid.UUID, motivo string, ahora time.Time) error
+}
+
+// GestorStock es lo que las transiciones necesitan del inventario. Confirmar
+// convierte la reserva en venta (no descuenta dos veces); Liberar devuelve las
+// unidades reservadas. Ambos son idempotentes (contrato de Agustín).
+type GestorStock interface {
+	Confirmar(ctx context.Context, tx *gorm.DB, pedidoID uuid.UUID) error
+	Liberar(ctx context.Context, tx *gorm.DB, pedidoID uuid.UUID) error
 }

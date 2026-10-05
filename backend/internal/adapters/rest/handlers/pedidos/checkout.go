@@ -19,14 +19,15 @@ const maxBody = 1 << 20 // 1 MiB: un pedido razonable pesa unos pocos KB
 type Handler struct {
 	checkout *uc.Checkout
 	consulta *uc.Consulta
+	gestion  *uc.Gestion
 
 	// usuario lee la identidad del contexto de la sesión. Es un campo para que
 	// los tests puedan simular una sesión sin armar un JWT.
 	usuario func(ctx context.Context) (middleware.Usuario, bool)
 }
 
-func NuevoHandler(checkout *uc.Checkout, consulta *uc.Consulta) *Handler {
-	return &Handler{checkout: checkout, consulta: consulta, usuario: middleware.UsuarioDeContexto}
+func NuevoHandler(checkout *uc.Checkout, consulta *uc.Consulta, gestion *uc.Gestion) *Handler {
+	return &Handler{checkout: checkout, consulta: consulta, gestion: gestion, usuario: middleware.UsuarioDeContexto}
 }
 
 // CrearPedido atiende POST /api/pedidos (SPEC-H13). La sesión es opcional: el
