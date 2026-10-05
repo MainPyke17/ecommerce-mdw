@@ -41,8 +41,8 @@ type Carrito struct {
 	ID            uuid.UUID     `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
 	UsuarioID     *uuid.UUID    `gorm:"type:uuid;uniqueIndex"`
 	Items         []ItemCarrito `gorm:"foreignKey:CarritoID"`
-	CreadoEn      time.Time
-	ActualizadoEn time.Time
+	CreadoEn      time.Time     `gorm:"autoCreateTime"`
+	ActualizadoEn time.Time     `gorm:"autoUpdateTime"`
 }
 
 func (Carrito) TableName() string { return "carrito" }
@@ -54,7 +54,7 @@ type ItemCarrito struct {
 	CarritoID  uuid.UUID `gorm:"type:uuid;not null;index"`
 	VarianteID uuid.UUID `gorm:"type:uuid;not null"`
 	Unidades   int       `gorm:"not null"`
-	CreadoEn   time.Time
+	CreadoEn   time.Time `gorm:"autoCreateTime"`
 }
 
 func (ItemCarrito) TableName() string { return "item_carrito" }
@@ -94,8 +94,8 @@ type Pedido struct {
 	VenceEn *time.Time
 
 	Detalles      []DetallePedido `gorm:"foreignKey:PedidoID"`
-	CreadoEn      time.Time       `gorm:"index"`
-	ActualizadoEn time.Time
+	CreadoEn      time.Time       `gorm:"autoCreateTime;index"`
+	ActualizadoEn time.Time       `gorm:"autoUpdateTime"`
 }
 
 func (Pedido) TableName() string { return "pedido" }
@@ -124,7 +124,7 @@ type ConfiguracionTienda struct {
 	ID                    uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
 	EfectivoHabilitado    bool      `gorm:"not null"`
 	DistanciaMaximaMetros int       `gorm:"not null"`
-	CreadoEn              time.Time
+	CreadoEn              time.Time `gorm:"autoCreateTime"`
 }
 
 func (ConfiguracionTienda) TableName() string { return "configuracion_tienda" }
