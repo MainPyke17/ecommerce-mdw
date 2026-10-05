@@ -93,6 +93,12 @@ type Pedido struct {
 	// VenceEn solo existe para Mercado Pago (reserva de 15 minutos).
 	VenceEn *time.Time
 
+	// Quién canceló, cuándo y por qué. Son nulos mientras el pedido no se
+	// cancela; el responsable sale de la sesión, nunca del body.
+	CanceladoPor      *uuid.UUID `gorm:"type:uuid"`
+	CanceladoEn       *time.Time
+	MotivoCancelacion *string
+
 	Detalles      []DetallePedido `gorm:"foreignKey:PedidoID"`
 	CreadoEn      time.Time       `gorm:"autoCreateTime;index"`
 	ActualizadoEn time.Time       `gorm:"autoUpdateTime"`
