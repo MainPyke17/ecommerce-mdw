@@ -26,8 +26,16 @@ type VariantePublica struct {
 	Descripcion             string    `json:"descripcion,omitempty"`
 	Marca                   string    `json:"marca"`
 	PrecioMinoristaCentavos int64     `json:"precioMinoristaCentavos"`
+	PrecioMayoristaCentavos int64     `json:"precioMayoristaCentavos,omitempty"`
 	ImagenPrincipal         string    `json:"imagenPrincipal"`
 	Disponible              bool      `json:"disponible" gorm:"-"`
+}
+
+type CategoriaPublica struct {
+	ID      uuid.UUID           `json:"id"`
+	Nombre  string              `json:"nombre"`
+	PadreID *uuid.UUID          `json:"-"`
+	Hijas   []*CategoriaPublica `json:"hijas,omitempty" gorm:"-"`
 }
 
 type RepositorioPublico struct{ db *gorm.DB }
@@ -37,7 +45,8 @@ func NuevoRepositorioPublico(db *gorm.DB) *RepositorioPublico { return &Reposito
 func (r *RepositorioPublico) base(ctx context.Context, f Filtros) *gorm.DB {
 	q := r.db.WithContext(ctx).Table("variante AS v").Joins("JOIN producto AS p ON p.id = v.producto_id").Joins("JOIN marca AS m ON m.id = p.marca_id").Where("v.estado = ? AND p.estado = ? AND m.estado = ?", "ACTIVA", "ACTIVO", "ACTIVA")
 	if f.Texto != "" {
-		q = q.Where("lower(v.nombre) LIKE ?", "%"+strings.ToLower(f.Texto)+"%")
+		literal := strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`).Replace(strings.ToLower(f.Texto))
+		q = q.Where(`lower(v.nombre) LIKE ? ESCAPE '\'`, "%"+literal+"%")
 	}
 	if f.MarcaID != nil {
 		q = q.Where("p.marca_id = ?", *f.MarcaID)
@@ -68,7 +77,7 @@ func (r *RepositorioPublico) Listar(ctx context.Context, f Filtros, limit, offse
 
 func (r *RepositorioPublico) PorID(ctx context.Context, id uuid.UUID) (VariantePublica, error) {
 	var item VariantePublica
-	err := r.base(ctx, Filtros{}).Select("v.id, v.producto_id, v.codigo, v.nombre, v.descripcion, v.precio_minorista_centavos, m.nombre AS marca, COALESCE(i.referencia_imagen, '') AS imagen_principal").Joins("LEFT JOIN imagen_variante AS i ON i.variante_id = v.id AND i.es_principal = true").Where("v.id = ?", id).Take(&item).Error
+	err := r.base(ctx, Filtros{}).Select("v.id, v.producto_id, v.codigo, v.nombre, v.descripcion, v.precio_minorista_centavos, v.precio_mayorista_centavos, m.nombre AS marca, COALESCE(i.referencia_imagen, '') AS imagen_principal").Joins("LEFT JOIN imagen_variante AS i ON i.variante_id = v.id AND i.es_principal = true").Where("v.id = ?", id).Take(&item).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return item, apierr.ErrNoEncontrado
 	}
@@ -81,6 +90,15 @@ func (r *RepositorioPublico) Imagenes(ctx context.Context, id uuid.UUID) ([]stri
 	out := make([]string, 0, len(rows))
 	for _, row := range rows {
 		out = append(out, row.ReferenciaImagen)
+	}
+	return out, err
+}
+
+func (r *RepositorioPublico) CategoriasDeProducto(ctx context.Context, productoID uuid.UUID) ([]CategoriaPublica, error) {
+	var out []CategoriaPublica
+	err := r.db.WithContext(ctx).Table("categoria AS c").Select("c.id, c.nombre, c.padre_id").Joins("JOIN producto_categoria AS pc ON pc.categoria_id = c.id").Where("pc.producto_id = ? AND c.estado = ?", productoID, "ACTIVA").Order("c.nombre ASC, c.id ASC").Limit(100).Scan(&out).Error
+	if out == nil {
+		out = []CategoriaPublica{}
 	}
 	return out, err
 }
@@ -104,16 +122,32 @@ func (r *RepositorioPublico) Marcas(ctx context.Context) ([]map[string]any, erro
 	return out, err
 }
 
-func (r *RepositorioPublico) Categorias(ctx context.Context) ([]map[string]any, error) {
-	var rows []struct {
-		ID      uuid.UUID
-		Nombre  string
-		PadreID *uuid.UUID
-	}
+func (r *RepositorioPublico) Categorias(ctx context.Context) ([]CategoriaPublica, error) {
+	var rows []CategoriaPublica
 	err := r.db.WithContext(ctx).Table("categoria").Select("id, nombre, padre_id").Where("estado = ?", "ACTIVA").Order("nombre ASC, id ASC").Limit(1000).Scan(&rows).Error
-	out := make([]map[string]any, 0, len(rows))
-	for _, row := range rows {
-		out = append(out, map[string]any{"id": row.ID, "nombre": row.Nombre, "padreId": row.PadreID})
+	return rows, err
+}
+
+// DisponibilidadPorVariantes calcula existencias menos salidas y reservas en una consulta.
+func (r *RepositorioPublico) DisponibilidadPorVariantes(ctx context.Context, ids []uuid.UUID) (map[uuid.UUID]bool, error) {
+	out := make(map[uuid.UUID]bool, len(ids))
+	if len(ids) == 0 {
+		return out, nil
 	}
-	return out, err
+	var rows []struct {
+		VarianteID uuid.UUID
+		Unidades   int64
+	}
+	err := r.db.WithContext(ctx).Raw(`SELECT l.variante_id, SUM(l.unidades_ingresadas + COALESCE(m.neto, 0) - COALESCE(rs.reservadas, 0)) AS unidades
+		FROM lote l
+		LEFT JOIN (SELECT lote_id, SUM(CASE WHEN tipo = 'AJUSTE' THEN unidades WHEN tipo = 'SALIDA' THEN -unidades ELSE 0 END) AS neto FROM movimiento_stock GROUP BY lote_id) m ON m.lote_id = l.id
+		LEFT JOIN (SELECT lote_id, SUM(unidades) AS reservadas FROM reserva_stock WHERE estado = 'ACTIVA' GROUP BY lote_id) rs ON rs.lote_id = l.id
+		WHERE l.variante_id IN ? GROUP BY l.variante_id`, ids).Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+	for _, row := range rows {
+		out[row.VarianteID] = row.Unidades > 0
+	}
+	return out, nil
 }

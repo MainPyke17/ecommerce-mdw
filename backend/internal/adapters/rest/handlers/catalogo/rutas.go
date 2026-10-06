@@ -41,6 +41,8 @@ func Montar(r chi.Router, db *gorm.DB, cfg config.Config, mw *middleware.Middlew
 		admin.Use(mw.RequiereSesion, mw.RequierePermiso("catalogo.escribir"))
 		montarProductos(admin, usecase.NuevoServicioProductos(db))
 		montarVariantes(admin, usecase.NuevoServicioVariantes(db))
+		montarClasificacion(admin, usecase.NuevoServicioClasificacion(db))
+		montarImagenes(admin, usecase.NuevoServicioImagenes(db))
 	})
 }
 

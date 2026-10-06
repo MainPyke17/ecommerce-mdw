@@ -25,17 +25,25 @@ func (s *Publico) Listar(ctx context.Context, f repo.Filtros, pagina, porPagina 
 	if err != nil {
 		return PaginaVariantes{}, err
 	}
-	// TODO(Genaro): conectar disponibilidad en lote cuando inventario esté en develop.
+	ids := make([]uuid.UUID, len(items))
 	for i := range items {
-		items[i].Disponible = true
+		ids[i] = items[i].ID
+	}
+	disponibles, err := s.repo.DisponibilidadPorVariantes(ctx, ids)
+	if err != nil {
+		return PaginaVariantes{}, err
+	}
+	for i := range items {
+		items[i].Disponible = disponibles[items[i].ID]
 	}
 	return PaginaVariantes{Items: items, Pagina: pagina, PorPagina: porPagina, Total: total}, nil
 }
 
 type DetalleVariante struct {
 	repo.VariantePublica
-	Imagenes       []string               `json:"imagenes"`
-	OtrasVariantes []repo.VariantePublica `json:"otrasVariantes"`
+	Imagenes       []string                `json:"imagenes"`
+	Categorias     []repo.CategoriaPublica `json:"categorias"`
+	OtrasVariantes []repo.VariantePublica  `json:"otrasVariantes"`
 }
 
 func (s *Publico) Detalle(ctx context.Context, id uuid.UUID) (DetalleVariante, error) {
@@ -47,18 +55,51 @@ func (s *Publico) Detalle(ctx context.Context, id uuid.UUID) (DetalleVariante, e
 	if err != nil {
 		return DetalleVariante{}, err
 	}
+	categorias, err := s.repo.CategoriasDeProducto(ctx, item.ProductoID)
+	if err != nil {
+		return DetalleVariante{}, err
+	}
 	otras, err := s.repo.Otras(ctx, item.ProductoID, id)
 	if err != nil {
 		return DetalleVariante{}, err
 	}
-	item.Disponible = true
-	for i := range otras {
-		otras[i].Disponible = true
+	ids := []uuid.UUID{item.ID}
+	for _, otra := range otras {
+		ids = append(ids, otra.ID)
 	}
-	return DetalleVariante{VariantePublica: item, Imagenes: imagenes, OtrasVariantes: otras}, nil
+	disponibles, err := s.repo.DisponibilidadPorVariantes(ctx, ids)
+	if err != nil {
+		return DetalleVariante{}, err
+	}
+	item.Disponible = disponibles[item.ID]
+	for i := range otras {
+		otras[i].Marca = item.Marca
+		otras[i].Disponible = disponibles[otras[i].ID]
+	}
+	return DetalleVariante{VariantePublica: item, Imagenes: imagenes, Categorias: categorias, OtrasVariantes: otras}, nil
 }
 
 func (s *Publico) Marcas(ctx context.Context) ([]map[string]any, error) { return s.repo.Marcas(ctx) }
-func (s *Publico) Categorias(ctx context.Context) ([]map[string]any, error) {
-	return s.repo.Categorias(ctx)
+func (s *Publico) Categorias(ctx context.Context) ([]*repo.CategoriaPublica, error) {
+	rows, err := s.repo.Categorias(ctx)
+	if err != nil {
+		return nil, err
+	}
+	byID := make(map[uuid.UUID]*repo.CategoriaPublica, len(rows))
+	for i := range rows {
+		rows[i].Hijas = []*repo.CategoriaPublica{}
+		byID[rows[i].ID] = &rows[i]
+	}
+	roots := make([]*repo.CategoriaPublica, 0)
+	for i := range rows {
+		c := &rows[i]
+		if c.PadreID != nil {
+			if padre, ok := byID[*c.PadreID]; ok {
+				padre.Hijas = append(padre.Hijas, c)
+				continue
+			}
+		}
+		roots = append(roots, c)
+	}
+	return roots, nil
 }
