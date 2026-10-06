@@ -7,6 +7,10 @@
 @varianteSinStock = 33333333-3333-3333-3333-333333333333
 @categoriaId = f9f03934-e59c-50a5-ad52-3f5e8ecc26ee
 @marcaId = e2b21c5b-1086-5c7f-a341-5c14065489ac
+@productoPruebaId = {{crearProducto.response.body.$.id}}
+@variantePruebaId = {{crearVariante.response.body.$.id}}
+@marcaPruebaId = {{crearMarca.response.body.$.id}}
+@categoriaPruebaId = {{crearCategoria.response.body.$.id}}
 @imagenId = {{agregarImagen.response.body.$.id}}
 @inexistente = 99999999-9999-9999-9999-999999999999
 
@@ -41,6 +45,7 @@ GET {{base}}/api/catalogo/categorias
 GET {{base}}/api/catalogo/marcas
 
 ### crear productos → 201
+# @name crearProducto
 POST {{base}}/api/admin/productos
 Authorization: Bearer {{tokenDueno}}
 Content-Type: application/json
@@ -63,7 +68,7 @@ GET {{base}}/api/admin/productos?porPagina=101
 Authorization: Bearer {{tokenDueno}}
 
 ### ver productos → 200
-GET {{base}}/api/admin/productos/{{productoId}}
+GET {{base}}/api/admin/productos/{{productoPruebaId}}
 Authorization: Bearer {{tokenDueno}}
 
 ### ver productos con id inválido → 400
@@ -75,14 +80,14 @@ GET {{base}}/api/admin/productos/{{inexistente}}
 Authorization: Bearer {{tokenDueno}}
 
 ### editar productos → 200
-PATCH {{base}}/api/admin/productos/{{productoId}}
+PATCH {{base}}/api/admin/productos/{{productoPruebaId}}
 Authorization: Bearer {{tokenDueno}}
 Content-Type: application/json
 
 {"nombre":"Producto de prueba editado"}
 
 ### editar productos con body inválido → 400
-PATCH {{base}}/api/admin/productos/{{productoId}}
+PATCH {{base}}/api/admin/productos/{{productoPruebaId}}
 Authorization: Bearer {{tokenDueno}}
 Content-Type: application/json
 
@@ -96,7 +101,7 @@ Content-Type: application/json
 {"nombre":"Producto de prueba editado"}
 
 ### desactivar productos → 204
-DELETE {{base}}/api/admin/productos/{{productoId}}
+DELETE {{base}}/api/admin/productos/{{productoPruebaId}}
 Authorization: Bearer {{tokenDueno}}
 
 ### desactivar productos con id inválido → 400
@@ -108,6 +113,7 @@ DELETE {{base}}/api/admin/productos/{{inexistente}}
 Authorization: Bearer {{tokenDueno}}
 
 ### crear variantes → 201
+# @name crearVariante
 POST {{base}}/api/admin/variantes
 Authorization: Bearer {{tokenDueno}}
 Content-Type: application/json
@@ -130,7 +136,7 @@ GET {{base}}/api/admin/variantes?porPagina=101
 Authorization: Bearer {{tokenDueno}}
 
 ### ver variantes → 200
-GET {{base}}/api/admin/variantes/{{varianteId}}
+GET {{base}}/api/admin/variantes/{{variantePruebaId}}
 Authorization: Bearer {{tokenDueno}}
 
 ### ver variantes con id inválido → 400
@@ -142,14 +148,14 @@ GET {{base}}/api/admin/variantes/{{inexistente}}
 Authorization: Bearer {{tokenDueno}}
 
 ### editar variantes → 200
-PATCH {{base}}/api/admin/variantes/{{varianteId}}
+PATCH {{base}}/api/admin/variantes/{{variantePruebaId}}
 Authorization: Bearer {{tokenDueno}}
 Content-Type: application/json
 
 {"nombre":"Variante editada"}
 
 ### editar variantes con body inválido → 400
-PATCH {{base}}/api/admin/variantes/{{varianteId}}
+PATCH {{base}}/api/admin/variantes/{{variantePruebaId}}
 Authorization: Bearer {{tokenDueno}}
 Content-Type: application/json
 
@@ -163,7 +169,7 @@ Content-Type: application/json
 {"nombre":"Variante editada"}
 
 ### desactivar variantes → 204
-DELETE {{base}}/api/admin/variantes/{{varianteId}}
+DELETE {{base}}/api/admin/variantes/{{variantePruebaId}}
 Authorization: Bearer {{tokenDueno}}
 
 ### desactivar variantes con id inválido → 400
@@ -175,6 +181,7 @@ DELETE {{base}}/api/admin/variantes/{{inexistente}}
 Authorization: Bearer {{tokenDueno}}
 
 ### crear marcas → 201
+# @name crearMarca
 POST {{base}}/api/admin/marcas
 Authorization: Bearer {{tokenDueno}}
 Content-Type: application/json
@@ -197,7 +204,7 @@ GET {{base}}/api/admin/marcas?porPagina=101
 Authorization: Bearer {{tokenDueno}}
 
 ### ver marcas → 200
-GET {{base}}/api/admin/marcas/{{marcaId}}
+GET {{base}}/api/admin/marcas/{{marcaPruebaId}}
 Authorization: Bearer {{tokenDueno}}
 
 ### ver marcas con id inválido → 400
@@ -209,14 +216,14 @@ GET {{base}}/api/admin/marcas/{{inexistente}}
 Authorization: Bearer {{tokenDueno}}
 
 ### editar marcas → 200
-PATCH {{base}}/api/admin/marcas/{{marcaId}}
+PATCH {{base}}/api/admin/marcas/{{marcaPruebaId}}
 Authorization: Bearer {{tokenDueno}}
 Content-Type: application/json
 
 {"nombre":"Marca de prueba editada"}
 
 ### editar marcas con body inválido → 400
-PATCH {{base}}/api/admin/marcas/{{marcaId}}
+PATCH {{base}}/api/admin/marcas/{{marcaPruebaId}}
 Authorization: Bearer {{tokenDueno}}
 Content-Type: application/json
 
@@ -230,7 +237,7 @@ Content-Type: application/json
 {"nombre":"Marca de prueba editada"}
 
 ### desactivar marcas → 204
-DELETE {{base}}/api/admin/marcas/{{marcaId}}
+DELETE {{base}}/api/admin/marcas/{{marcaPruebaId}}
 Authorization: Bearer {{tokenDueno}}
 
 ### desactivar marcas con id inválido → 400
@@ -242,6 +249,7 @@ DELETE {{base}}/api/admin/marcas/{{inexistente}}
 Authorization: Bearer {{tokenDueno}}
 
 ### crear categorias → 201
+# @name crearCategoria
 POST {{base}}/api/admin/categorias
 Authorization: Bearer {{tokenDueno}}
 Content-Type: application/json
@@ -264,7 +272,7 @@ GET {{base}}/api/admin/categorias?porPagina=101
 Authorization: Bearer {{tokenDueno}}
 
 ### ver categorias → 200
-GET {{base}}/api/admin/categorias/{{categoriaId}}
+GET {{base}}/api/admin/categorias/{{categoriaPruebaId}}
 Authorization: Bearer {{tokenDueno}}
 
 ### ver categorias con id inválido → 400
@@ -276,14 +284,14 @@ GET {{base}}/api/admin/categorias/{{inexistente}}
 Authorization: Bearer {{tokenDueno}}
 
 ### editar categorias → 200
-PATCH {{base}}/api/admin/categorias/{{categoriaId}}
+PATCH {{base}}/api/admin/categorias/{{categoriaPruebaId}}
 Authorization: Bearer {{tokenDueno}}
 Content-Type: application/json
 
 {"nombre":"Categoría de prueba editada"}
 
 ### editar categorias con body inválido → 400
-PATCH {{base}}/api/admin/categorias/{{categoriaId}}
+PATCH {{base}}/api/admin/categorias/{{categoriaPruebaId}}
 Authorization: Bearer {{tokenDueno}}
 Content-Type: application/json
 
@@ -297,7 +305,7 @@ Content-Type: application/json
 {"nombre":"Categoría de prueba editada"}
 
 ### desactivar categorias → 204
-DELETE {{base}}/api/admin/categorias/{{categoriaId}}
+DELETE {{base}}/api/admin/categorias/{{categoriaPruebaId}}
 Authorization: Bearer {{tokenDueno}}
 
 ### desactivar categorias con id inválido → 400

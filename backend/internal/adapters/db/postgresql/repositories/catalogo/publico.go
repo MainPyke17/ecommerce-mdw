@@ -138,11 +138,18 @@ func (r *RepositorioPublico) DisponibilidadPorVariantes(ctx context.Context, ids
 		VarianteID uuid.UUID
 		Unidades   int64
 	}
-	err := r.db.WithContext(ctx).Raw(`SELECT l.variante_id, SUM(l.unidades_ingresadas + COALESCE(m.neto, 0) - COALESCE(rs.reservadas, 0)) AS unidades
-		FROM lote l
-		LEFT JOIN (SELECT lote_id, SUM(CASE WHEN tipo = 'AJUSTE' THEN unidades WHEN tipo = 'SALIDA' THEN -unidades ELSE 0 END) AS neto FROM movimiento_stock GROUP BY lote_id) m ON m.lote_id = l.id
-		LEFT JOIN (SELECT lote_id, SUM(unidades) AS reservadas FROM reserva_stock WHERE estado = 'ACTIVA' GROUP BY lote_id) rs ON rs.lote_id = l.id
-		WHERE l.variante_id IN ? GROUP BY l.variante_id`, ids).Scan(&rows).Error
+	err := r.db.WithContext(ctx).Raw(`WITH seleccion AS (
+		SELECT id, variante_id, unidades_ingresadas FROM lote WHERE variante_id IN ?
+	), movimientos AS (
+		SELECT m.lote_id, SUM(CASE WHEN m.tipo = 'AJUSTE' THEN m.unidades WHEN m.tipo = 'SALIDA' THEN -m.unidades ELSE 0 END) AS neto
+		FROM movimiento_stock m JOIN seleccion l ON l.id = m.lote_id GROUP BY m.lote_id
+	), reservas AS (
+		SELECT rs.lote_id, SUM(rs.unidades) AS reservadas
+		FROM reserva_stock rs JOIN seleccion l ON l.id = rs.lote_id WHERE rs.estado = 'ACTIVA' GROUP BY rs.lote_id
+	)
+	SELECT l.variante_id, SUM(l.unidades_ingresadas + COALESCE(m.neto, 0) - COALESCE(rs.reservadas, 0)) AS unidades
+	FROM seleccion l LEFT JOIN movimientos m ON m.lote_id = l.id
+	LEFT JOIN reservas rs ON rs.lote_id = l.id GROUP BY l.variante_id`, ids).Scan(&rows).Error
 	if err != nil {
 		return nil, err
 	}
