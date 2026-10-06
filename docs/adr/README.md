@@ -7,5 +7,7 @@ Los ADR registran decisiones técnicas aceptadas para la versión inicial. Cada 
 | [ADR-001](ADR-001-configuracion.md) | Aceptado | Configuración centralizada con Viper |
 | [ADR-002](ADR-002-persistencia-y-migraciones.md) | Aceptado | GORM y migraciones versionadas con gormigrate |
 | [ADR-003](ADR-003-api-http.md) | Aceptado | API HTTP con Chi |
+| [ADR-004](ADR-004-tipos-de-datos.md) | Aceptado | Dinero en centavos (`int64`) e identificadores `uuid.UUID` |
+| [ADR-005](ADR-005-despliegue.md) | Aceptado | Despliegue en VPS propia, no en Vercel |
 
 Una decisión nueva o una modificación incompatible requiere un ADR nuevo que reemplace o deje obsoleto al anterior. Los temas aún sujetos a análisis se documentan como RFC, no como ADR.
