@@ -11,7 +11,10 @@ package middleware
 import (
 	"context"
 	"net/http"
+	"strings"
+	"time"
 
+	jwt "github.com/Unknowns24/ecommerce-mdw/internal/adapters/jwt"
 	"github.com/google/uuid"
 
 	apierr "github.com/Unknowns24/ecommerce-mdw/internal/adapters/rest/errors"
@@ -29,13 +32,13 @@ type Usuario struct {
 // Middleware holds whatever the session verification needs (today: the app
 // secret used to verify JWTs).
 type Middleware struct {
-	secreto string
+	emisor *jwt.Emisor
 }
 
 // Nuevo builds the middleware with the application secret used to verify
 // sessions.
 func Nuevo(secreto string) *Middleware {
-	return &Middleware{secreto: secreto}
+	return &Middleware{emisor: jwt.NuevoEmisor(secreto, 24*time.Hour)}
 }
 
 // RequiereSesion stub: siempre responde 401. TODO(Yasmín): verificar el JWT
@@ -43,7 +46,12 @@ func Nuevo(secreto string) *Middleware {
 // contexto.
 func (m *Middleware) RequiereSesion(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		apierr.Responder(w, r.Method+" "+r.URL.Path, apierr.ErrNoAutenticado)
+		u, ok := m.usuario(r)
+		if !ok {
+			apierr.Responder(w, r.Method+" "+r.URL.Path, apierr.ErrNoAutenticado)
+			return
+		}
+		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), usuarioContextKey{}, u)))
 	})
 }
 
@@ -52,7 +60,18 @@ func (m *Middleware) RequiereSesion(next http.Handler) http.Handler {
 func (m *Middleware) RequierePermiso(permiso string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			apierr.Responder(w, r.Method+" "+r.URL.Path, apierr.ErrNoAutenticado)
+			u, ok := UsuarioDeContexto(r.Context())
+			if !ok {
+				apierr.Responder(w, r.Method+" "+r.URL.Path, apierr.ErrNoAutenticado)
+				return
+			}
+			for _, p := range u.Permisos {
+				if p == permiso {
+					next.ServeHTTP(w, r)
+					return
+				}
+			}
+			apierr.Responder(w, r.Method+" "+r.URL.Path, apierr.ErrNoAutorizado)
 		})
 	}
 }
@@ -60,7 +79,30 @@ func (m *Middleware) RequierePermiso(permiso string) func(http.Handler) http.Han
 // SesionOpcional stub: deja pasar sin usuario en el contexto. TODO(Yasmín):
 // si hay un token válido, ponerlo en el contexto; si no, dejar pasar igual.
 func (m *Middleware) SesionOpcional(next http.Handler) http.Handler {
-	return next
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if u, ok := m.usuario(r); ok {
+			r = r.WithContext(context.WithValue(r.Context(), usuarioContextKey{}, u))
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+func (m *Middleware) usuario(r *http.Request) (Usuario, bool) {
+	token := ""
+	if auth := r.Header.Get("Authorization"); auth != "" {
+		partes := strings.SplitN(auth, " ", 2)
+		if len(partes) != 2 || !strings.EqualFold(partes[0], "Bearer") || partes[1] == "" {
+			return Usuario{}, false
+		}
+		token = partes[1]
+	} else if cookie, err := r.Cookie("sesion"); err == nil {
+		token = cookie.Value
+	}
+	c, err := m.emisor.Verificar(token)
+	if err != nil {
+		return Usuario{}, false
+	}
+	return Usuario{ID: c.Sub, Correo: c.Correo, Roles: c.Roles, Permisos: c.Permisos}, true
 }
 
 type usuarioContextKey struct{}
