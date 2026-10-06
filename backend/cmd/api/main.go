@@ -18,6 +18,7 @@ import (
 	"github.com/Unknowns24/ecommerce-mdw/internal/adapters/rest/handlers/catalogo"
 	"github.com/Unknowns24/ecommerce-mdw/internal/adapters/rest/handlers/identidad"
 	"github.com/Unknowns24/ecommerce-mdw/internal/adapters/rest/handlers/inventario"
+	"github.com/Unknowns24/ecommerce-mdw/internal/adapters/rest/handlers/pagos"
 	"github.com/Unknowns24/ecommerce-mdw/internal/adapters/rest/handlers/pedidos"
 	"github.com/Unknowns24/ecommerce-mdw/internal/adapters/rest/middleware"
 	"github.com/Unknowns24/ecommerce-mdw/internal/adapters/rest/router"
@@ -65,6 +66,7 @@ func main() {
 	identidad.Montar(r, db, cfg, mw)
 	catalogo.Montar(r, db, cfg, mw)
 	inventario.Montar(r, db, cfg, mw)
+	pagos.Montar(r, db, cfg, mw)
 	pedidos.Montar(r, db, cfg, mw)
 
 	log.Printf("escuchando en :%s (version=%s)", cfg.AppPort, version)
