@@ -18,6 +18,12 @@ if [ "${VERCEL_ENV:-}" = "production" ]; then
 	fi
 	go version
 	go run ./cmd/api migrate
+	# Datos de demostración (catálogo, lotes y configuración de la tienda) para
+	# que el flujo de compra se pueda recorrer en producción. Los tres seeds
+	# son idempotentes: correrlos en cada deploy no duplica nada.
+	go run ./cmd/seed-catalogo
+	go run ./cmd/seed
+	go run ./cmd/seed-pedidos
 else
 	echo "VERCEL_ENV=${VERCEL_ENV:-local}: sin migraciones (sólo producción tiene base configurada)"
 fi
