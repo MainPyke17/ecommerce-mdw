@@ -1,0 +1,8 @@
+# Nunca se sube a Vercel: secretos locales, binarios y la salida del build.
+.env
+.env.*
+!.env.example
+bin/
+public/
+*.test
+*.out

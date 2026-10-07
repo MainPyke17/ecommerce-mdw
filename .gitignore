@@ -4,7 +4,10 @@ backend/.env
 docs/.env
 
 # Go
-backend/api
+# El binario va a bin/: backend/api/ es la función de Vercel y se versiona.
+backend/bin/
+backend/public/
+.vercel/
 backend/seed-*
 *.test
 *.out

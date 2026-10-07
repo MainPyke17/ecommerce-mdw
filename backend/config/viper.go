@@ -105,6 +105,12 @@ func Load() (Config, error) {
 	if err := v.BindEnv("PAYMENT_RESERVATION_TTL"); err != nil {
 		return Config{}, fmt.Errorf("bind PAYMENT_RESERVATION_TTL: %w", err)
 	}
+	// Neon, instalado desde el Marketplace de Vercel, publica la conexión como
+	// DATABASE_URL. Se acepta como alternativa para no copiar el secreto a
+	// mano a otra variable; si están las dos, gana DATABASE_DSN.
+	if err := v.BindEnv("DATABASE_DSN", "DATABASE_DSN", "DATABASE_URL"); err != nil {
+		return Config{}, fmt.Errorf("bind DATABASE_DSN: %w", err)
+	}
 
 	var cfg Config
 	if err := v.Unmarshal(&cfg); err != nil {

@@ -71,3 +71,34 @@ func TestLoadRejectsInvalidAppPort(t *testing.T) {
 		t.Fatal("Load() succeeded with invalid APP_PORT")
 	}
 }
+
+func TestLoadAcceptsDatabaseURLAsFallback(t *testing.T) {
+	t.Setenv("DATABASE_URL", "postgres://user:pass@neon:5432/bc")
+	t.Setenv("APP_SECRET_KEY", "application-secret")
+	t.Setenv("ORDER_ACCESS_TOKEN_SECRET", "order-secret")
+	t.Setenv("PUBLIC_BASE_URL", "http://localhost:8080")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	if cfg.DatabaseDSN != "postgres://user:pass@neon:5432/bc" {
+		t.Fatalf("DatabaseDSN = %q, want the DATABASE_URL value", cfg.DatabaseDSN)
+	}
+}
+
+func TestLoadPrefersDatabaseDSNOverDatabaseURL(t *testing.T) {
+	t.Setenv("DATABASE_DSN", "postgres://user:pass@dsn:5432/bc")
+	t.Setenv("DATABASE_URL", "postgres://user:pass@url:5432/bc")
+	t.Setenv("APP_SECRET_KEY", "application-secret")
+	t.Setenv("ORDER_ACCESS_TOKEN_SECRET", "order-secret")
+	t.Setenv("PUBLIC_BASE_URL", "http://localhost:8080")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	if cfg.DatabaseDSN != "postgres://user:pass@dsn:5432/bc" {
+		t.Fatalf("DatabaseDSN = %q, want the DATABASE_DSN value", cfg.DatabaseDSN)
+	}
+}

@@ -1,6 +1,7 @@
-// Command api is the composition root of the backend: it loads the
-// configuration, opens the database connection, mounts every module's
-// routes exactly once, and starts the HTTP server.
+// Command api is the long-running entry point of the backend: it loads the
+// configuration, opens the database connection, and serves the router that
+// internal/app composes. With "migrate" as its argument it only applies the
+// versioned migrations and exits.
 package main
 
 import (
@@ -8,20 +9,10 @@ import (
 	"net/http"
 	"os"
 
-	chimw "github.com/go-chi/chi/v5/middleware"
-	"github.com/go-chi/cors"
-
 	"github.com/Unknowns24/ecommerce-mdw/config"
 	"github.com/Unknowns24/ecommerce-mdw/internal/adapters/db/postgresql"
 	database "github.com/Unknowns24/ecommerce-mdw/internal/adapters/db/postgresql/migrations"
-	apierr "github.com/Unknowns24/ecommerce-mdw/internal/adapters/rest/errors"
-	"github.com/Unknowns24/ecommerce-mdw/internal/adapters/rest/handlers/catalogo"
-	"github.com/Unknowns24/ecommerce-mdw/internal/adapters/rest/handlers/identidad"
-	"github.com/Unknowns24/ecommerce-mdw/internal/adapters/rest/handlers/inventario"
-	"github.com/Unknowns24/ecommerce-mdw/internal/adapters/rest/handlers/pagos"
-	"github.com/Unknowns24/ecommerce-mdw/internal/adapters/rest/handlers/pedidos"
-	"github.com/Unknowns24/ecommerce-mdw/internal/adapters/rest/middleware"
-	"github.com/Unknowns24/ecommerce-mdw/internal/adapters/rest/router"
+	"github.com/Unknowns24/ecommerce-mdw/internal/app"
 )
 
 // version se completa en build con -ldflags "-X main.version=<git-sha-corto>".
@@ -51,30 +42,8 @@ func main() {
 		return
 	}
 
-	mw := middleware.Nuevo(cfg.AppSecretKey)
-	r := router.NewRouter()
-	r.Use(chimw.RequestID, chimw.RealIP, chimw.Recoverer, chimw.Logger)
-	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"*"},
-		AllowedMethods:   []string{"GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type"},
-		AllowCredentials: true,
-		MaxAge:           300,
-	}))
-	r.Get("/api/salud", salud)
-
-	identidad.Montar(r, db, cfg, mw)
-	catalogo.Montar(r, db, cfg, mw)
-	inventario.Montar(r, db, cfg, mw)
-	pagos.Montar(r, db, cfg, mw)
-	pedidos.Montar(r, db, cfg, mw)
-
 	log.Printf("escuchando en :%s (version=%s)", cfg.AppPort, version)
-	if err := http.ListenAndServe(":"+cfg.AppPort, r); err != nil {
+	if err := http.ListenAndServe(":"+cfg.AppPort, app.Handler(cfg, db, version)); err != nil {
 		log.Fatalf("el servidor se detuvo: %v", err)
 	}
-}
-
-func salud(w http.ResponseWriter, r *http.Request) {
-	apierr.JSON(w, http.StatusOK, map[string]string{"estado": "ok", "version": version})
 }
